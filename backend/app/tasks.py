@@ -12,7 +12,7 @@ import google.generativeai as genai
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-from .worker import celery_app
+from .celery_instance import celery_app
 
 # The worker now handles loading the .env file, so we just need to ensure
 # the environment is loaded when tasks are potentially run or imported elsewhere.
@@ -61,7 +61,7 @@ def chunk_text(text: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> l
 
 # --- Main Celery Task ---
 
-@celery_app.task(name='process_document')
+@celery_app.task
 def process_document(document_id: int):
     '''
     Celery task to process a single document.

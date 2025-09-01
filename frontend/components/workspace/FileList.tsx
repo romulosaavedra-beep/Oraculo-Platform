@@ -2,60 +2,60 @@
 
 import { useState, useEffect } from 'react';
 import { createSupabaseClient } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
-import type { FileObject } from '@supabase/storage-js';
+
+// Definindo um tipo para os documentos que vêm da tabela
+interface Document {
+  id: string;
+  name: string;
+}
 
 interface FileListProps {
   workspaceId: string;
 }
 
 export default function FileList({ workspaceId }: FileListProps) {
-  const [files, setFiles] = useState<FileObject[]>([]);
+  // O estado agora armazena um array do nosso tipo Document
+  const [files, setFiles] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { user } = useAuth();
   const supabase = createSupabaseClient();
 
   useEffect(() => {
-    if (!user) {
-      // Wait for the user to be available
-      return;
-    }
-
+    // A dependência do `user` não é mais necessária aqui, pois a RLS cuida da segurança
     const fetchFiles = async () => {
       setLoading(true);
       setError(null);
 
-      const path = `${user.id}/${workspaceId}`;
-
       try {
-        const { data, error: listError } = await supabase.storage
-          .from('workspaces_data')
-          .list(path, {
-            limit: 100, // You can adjust the limit as needed
-            offset: 0,
-            sortBy: { column: 'name', order: 'asc' },
-          });
+        // A consulta agora é feita na tabela 'documents'
+        const { data, error: dbError } = await supabase
+          .from('documents')
+          .select('id, name') // Selecionamos id e name
+          .eq('workspace_id', workspaceId) // Filtramos pelo workspaceId
+          .order('name', { ascending: true }); // Ordenamos por nome
 
-        if (listError) {
-          throw listError;
+        if (dbError) {
+          throw dbError;
         }
 
         setFiles(data || []);
       } catch (err: any) {
-        console.error("Erro ao listar arquivos:", err);
-        setError("Não foi possível carregar a lista de arquivos.");
+        console.error("Erro ao buscar documentos:", err);
+        setError("Não foi possível carregar a lista de documentos.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFiles();
-  }, [workspaceId, user, supabase]);
+    if (workspaceId) {
+      fetchFiles();
+    }
+  // A dependência do supabase client é estável e pode ser omitida se preferir
+  }, [workspaceId, supabase]);
 
   if (loading) {
-    return <p className="text-sm text-gray-500">Carregando arquivos...</p>;
+    return <p className="text-sm text-gray-500">Carregando documentos...</p>;
   }
 
   if (error) {

@@ -37,30 +37,57 @@ export default function FileUploader({ workspaceId }: FileUploaderProps) {
     setUploading(true);
     setMessage(`Fazendo upload de: ${selectedFile.name}...`);
 
-    // Sanitize the file name to prevent invalid key errors
+    // Sanitize the file name
     const sanitizedFileName = selectedFile.name
-      .replace(/\s+/g, '_') // Replace spaces with underscores
-      .replace(/[^a-zA-Z0-9._-]/g, ''); // Remove special characters except dot, underscore, hyphen
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9._-]/g, '');
 
     const filePath = `${user.id}/${workspaceId}/${sanitizedFileName}`;
 
     try {
-      const { error } = await supabase.storage
-        .from('workspaces_data') // Make sure this bucket exists
+      // --- ETAPA 1: UPLOAD DO ARQUIVO ---
+      console.log("ETAPA 1: Tentando fazer o upload do arquivo para o Storage...");
+      const { error: uploadError } = await supabase.storage
+        .from('workspaces_data')
         .upload(filePath, selectedFile, {
           cacheControl: '3600',
-          upsert: true, // Overwrite file if it already exists
+          upsert: true,
         });
 
-      if (error) {
-        throw error;
+      if (uploadError) {
+        console.error("FALHA NA ETAPA 1 (UPLOAD):", uploadError);
+        throw uploadError;
+      }
+      console.log("ETAPA 1 CONCLUÍDA: Upload para o Storage bem-sucedido.");
+
+
+      // --- ETAPA 2: INSERÇÃO NO BANCO DE DADOS ---
+      console.log("ETAPA 2: Tentando inserir o registro na tabela 'documents'...");
+      try {
+        const { data: insertData, error: insertError } = await supabase.from('documents').insert({
+          name: sanitizedFileName,
+          path: filePath,
+          user_id: user.id,
+          workspace_id: workspaceId,
+        });
+
+        if (insertError) {
+          console.error("FALHA NA ETAPA 2 (INSERÇÃO NO DB):", insertError);
+          // Tenta remover o arquivo órfão
+          await supabase.storage.from('workspaces_data').remove([filePath]);
+          throw insertError;
+        }
+
+        console.log("ETAPA 2 CONCLUÍDA: Inserção no DB bem-sucedida.", insertData);
+        setMessage(`Arquivo "${selectedFile.name}" enviado e registrado com sucesso!`);
+
+      } catch (dbError: any) {
+        console.error("Erro ao registrar o documento:", dbError);
+        setMessage(`Erro ao registrar o documento no banco de dados: ${dbError.message}`);
       }
 
-      setMessage(`Arquivo "${selectedFile.name}" enviado com sucesso!`);
-      // Don't clear the file input so user can see what was uploaded
-      // setSelectedFile(null);
     } catch (err: any) {
-      console.error("Erro no upload:", err);
+      console.error("Erro no processo de upload:", err);
       setMessage(`Erro ao enviar o arquivo: ${err.message}`);
     } finally {
       setUploading(false);

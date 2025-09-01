@@ -712,7 +712,6 @@ cd backend
     poetry run uvicorn app.main:app --reload
 
 cd backend
-    poetry run celery -A app.worker.celery_app worker --loglevel=info
-
+    poetry run celery -A app.worker.celery_app worker --loglevel=info -P solo
 cd backend
     poetry run python app/listener.py
