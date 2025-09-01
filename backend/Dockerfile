@@ -10,7 +10,7 @@ RUN pip install poetry
 # Copia os arquivos de dependência e instala-os
 # Isso é feito separadamente para aproveitar o cache do Docker
 COPY pyproject.toml poetry.lock* ./
-RUN poetry config virtualenvs.in-project true && poetry install --no-dev --no-root
+RUN poetry config virtualenvs.in-project true && poetry install --without dev --no-root
 
 # --- Final Stage ---
 # Cria a imagem final com o ambiente virtual e o código da aplicação
