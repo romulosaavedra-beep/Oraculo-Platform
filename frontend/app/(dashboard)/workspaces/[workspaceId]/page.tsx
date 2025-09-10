@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createSupabaseClient } from '@/lib/supabase';
+import { useQuery } from '@tanstack/react-query';
+import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import FileUploader from '@/components/workspace/FileUploader';
 import FileList from '@/components/workspace/FileList';
 
-// Define the type for a workspace
+// Tipagem para o workspace
 interface Workspace {
   id: string;
   name: string;
@@ -15,67 +15,58 @@ interface Workspace {
   created_at: string;
 }
 
-// Define the props for the page component, including the params
+// Props da página, incluindo os parâmetros da URL
 interface WorkspacePageProps {
   params: {
     workspaceId: string;
   };
 }
 
+// Função de busca de dados para um único workspace
+const fetchWorkspace = async (workspaceId: string, userId: string) => {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('workspaces')
+    .select('*')
+    .eq('id', workspaceId)
+    .eq('user_id', userId) // Segurança: Garante que o usuário é o dono
+    .single();
+
+  if (error) {
+    // Lança um erro específico se não for encontrado, para tratamento na UI
+    if (error.code === 'PGRST116') {
+      throw new Error('Workspace não encontrado ou você não tem permissão para acessá-lo.');
+    }
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
 export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { workspaceId } = params;
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const { user, loading: authLoading } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
-  const supabase = createSupabaseClient();
 
-  useEffect(() => {
-    if (authLoading) {
-      return; // Wait for authentication to be resolved
-    }
+  const { 
+    data: workspace, 
+    isLoading: isWorkspaceLoading, 
+    isError, 
+    error 
+  } = useQuery<Workspace, Error>({
+    queryKey: ['workspace', workspaceId, user?.id],
+    queryFn: () => fetchWorkspace(workspaceId, user!.id),
+    enabled: !!user, // Só executa a query se o usuário estiver logado
+  });
 
-    if (!user) {
-      router.push('/login');
-      return;
-    }
+  // Redireciona se a autenticação falhar
+  if (!isAuthLoading && !user) {
+    router.push('/login');
+    return null;
+  }
 
-    const fetchWorkspace = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const { data, error: fetchError } = await supabase
-          .from('workspaces')
-          .select('*')
-          .eq('id', workspaceId)
-          .eq('user_id', user.id) // Security: Ensure the user owns this workspace
-          .single(); // We expect only one result
-
-        if (fetchError) {
-          if (fetchError.code === 'PGRST116') { // PostgREST error for "exact one row not found"
-            setError('Workspace não encontrado ou você não tem permissão para acessá-lo.');
-          } else {
-            throw fetchError;
-          }
-        }
-
-        setWorkspace(data);
-      } catch (err: any) {
-        console.error("Erro ao buscar o workspace:", err);
-        setError(err.message || 'Ocorreu um erro ao buscar os dados do workspace.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWorkspace();
-
-  }, [workspaceId, user, authLoading, router, supabase]);
-
-  if (loading || authLoading) {
+  // Estado de carregamento combinado
+  if (isAuthLoading || isWorkspaceLoading) {
     return (
       <div className="flex justify-center items-center h-full p-8">
         <p className="text-lg text-gray-500">Carregando workspace...</p>
@@ -83,16 +74,17 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     );
   }
 
-  if (error) {
+  // Estado de erro
+  if (isError) {
     return (
       <div className="flex justify-center items-center h-full bg-red-50 p-8 rounded-md">
-        <p className="text-lg text-red-600">Erro: {error}</p>
+        <p className="text-lg text-red-600">Erro: {error.message}</p>
       </div>
     );
   }
 
+  // Fallback caso o workspace não seja encontrado (embora o erro deva pegar isso)
   if (!workspace) {
-    // This case should be covered by the error state, but as a fallback
     return (
         <div className="flex justify-center items-center h-full p-8">
             <p className="text-lg text-gray-500">Workspace não encontrado.</p>
@@ -105,7 +97,6 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       <h1 className="text-3xl font-bold text-gray-800 mb-6">
         {workspace.name}
       </h1>
-      {/* Future components will go here */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
           <FileUploader workspaceId={workspace.id} />

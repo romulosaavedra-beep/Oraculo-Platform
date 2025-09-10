@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { QueryProvider } from "@/components/QueryProvider"; // Importado
 
 export const metadata: Metadata = {
   title: "Projeto Oráculo",
@@ -15,9 +16,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

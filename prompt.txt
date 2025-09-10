@@ -1,0 +1,9 @@
+Gemini, você introduziu um erro de sintaxe no arquivo `frontend/app/(dashboard)/workspaces/[workspaceId]/page.tsx`. Por favor, reescreva este arquivo do zero para corrigir o problema. O novo arquivo deve conter a seguinte lógica:
+1.  Ser um componente de cliente que recebe `params` com o `workspaceId`.
+2.  Manter os estados para `files`, `loading`, e `error`.
+3.  Usar um `useEffect` para buscar a lista inicial de arquivos da tabela `documents` e para se inscrever no canal do Supabase Realtime para o `workspaceId` específico.
+4.  O listener do Realtime deve ouvir todos os eventos (`*`) e chamar a função de busca de arquivos novamente sempre que um evento for detectado. Adicione `console.log` para depurar o status da inscrição e os payloads recebidos.
+5.  O JSX deve usar um `ResizablePanelGroup` com dois painéis.
+6.  O painel esquerdo deve conter os componentes `<FileUploader workspaceId={workspaceId} />` e `<FileList files={files} loading={loading} setFiles={setFiles} />`.
+7.  O painel direito deve conter o componente `<ChatInterface workspaceId={workspaceId} />`.
+O objetivo é ter um arquivo sintaticamente correto que centralize o estado e a lógica de dados.
