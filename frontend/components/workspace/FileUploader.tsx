@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createSupabaseClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
 interface FileUploaderProps {
@@ -14,7 +14,7 @@ export default function FileUploader({ workspaceId }: FileUploaderProps) {
   const [message, setMessage] = useState<string | null>(null);
 
   const { user } = useAuth();
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {

@@ -23,5 +23,5 @@ Gemini, o servidor do frontend não está iniciando. Eu executei `npm run dev` e
 ---
 
 git add .
-git commit -m "Feat: Implementa autenticação e CRUD de workspaces"
-git push
+git commit -m "Feat: Restaura MVP funcional com autenticação e chat"
+git push --force origin main

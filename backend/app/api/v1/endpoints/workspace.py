@@ -19,7 +19,7 @@ def create_workspace_endpoint(
     """
     Cria um novo workspace para o usuário autenticado.
     """
-    user_id = current_user.get("id")
+    user_id = current_user
     if not user_id:
         raise HTTPException(status_code=403, detail="Usuário não autenticado.")
 
@@ -37,7 +37,7 @@ def list_workspaces_endpoint(
     """
     Lista todos os workspaces do usuário autenticado.
     """
-    user_id = current_user.get("id")
+    user_id = current_user
     if not user_id:
         raise HTTPException(status_code=403, detail="Usuário não autenticado.")
 

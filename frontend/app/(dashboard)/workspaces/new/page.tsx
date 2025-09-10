@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSupabaseClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
 export default function CreateWorkspacePage() {
@@ -11,8 +11,8 @@ export default function CreateWorkspacePage() {
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
-  const supabase = createSupabaseClient();
-  const { user, loading: authLoading } = useAuth(); // Renamed loading to authLoading to avoid conflict
+  const supabase = createClient();
+  const { user, isLoading : authLoading } = useAuth(); // Renamed loading to authLoading to avoid conflict
 
   const handleCreateWorkspace = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

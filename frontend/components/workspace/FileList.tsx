@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createSupabaseClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 
 // Definindo um tipo para os documentos que vêm da tabela
 interface Document {
@@ -19,7 +19,7 @@ export default function FileList({ workspaceId }: FileListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
 
   useEffect(() => {
     // A dependência do `user` não é mais necessária aqui, pois a RLS cuida da segurança
