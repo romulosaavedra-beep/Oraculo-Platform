@@ -5,85 +5,121 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import apiClient from '@/services/apiClient';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Definindo a tipagem para um workspace
+interface Workspace {
+    id: string;
+    name: string;
+    created_at: string;
+}
 
 // A função de busca de dados, agora usando nosso cliente de API.
-const fetchWorkspaces = async () => {
-  // O token de autenticação é adicionado automaticamente pelo interceptor do axios.
-  const { data } = await apiClient.get('/workspaces/');
-  return data;
+const fetchWorkspaces = async (): Promise<Workspace[]> => {
+    const { data } = await apiClient.get('/workspaces/');
+    return data;
 };
 
-export default function WorkspacesPage() {
-  const { user, isLoading: isAuthLoading } = useAuth();
-  const router = useRouter();
-
-  // Usando o hook useQuery para buscar os dados
-  const { 
-    data: workspaces, 
-    isLoading: isWorkspacesLoading, 
-    isError, 
-    error 
-  } = useQuery({
-    // Chave única para esta query.
-    queryKey: ['workspaces', user?.id], 
-    // A função que busca os dados.
-    queryFn: fetchWorkspaces, // ATUALIZADO
-    // A query só será executada se o user.id existir (usuário está logado).
-    enabled: !!user,
-  });
-
-  // Redireciona se a autenticação terminar e não houver usuário
-  if (!isAuthLoading && !user) {
-    router.push('/login');
-    return null; // Retorna nulo enquanto redireciona
-  }
-
-  // Estado de carregamento combinado
-  if (isAuthLoading || isWorkspacesLoading) {
-    return (
-      <div className="flex justify-center items-center h-full p-8">
-        <p className="text-lg text-gray-500">Carregando workspaces...</p>
-      </div>
-    );
-  }
-
-  // Estado de erro
-  if (isError) {
-    return (
-      <div className="flex justify-center items-center h-full bg-red-50 p-8 rounded-md">
-        <p className="text-lg text-red-600">Erro ao carregar workspaces: {error.message}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Seus Workspaces</h1>
-        <Link href="/workspaces/new" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-          + Novo Workspace
-        </Link>
-      </div>
-
-      {workspaces && workspaces.length === 0 ? (
-        <div className="text-center py-10 px-6 bg-gray-50 rounded-lg">
-          <p className="text-gray-500">Nenhum workspace encontrado.</p>
-          <p className="text-sm text-gray-400 mt-2">Crie seu primeiro workspace para começar a organizar seus projetos.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {workspaces?.map((ws) => (
-            <div key={ws.id} className="block p-6 bg-white rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow">
-              <Link href={`/workspaces/${ws.id}`}>
-                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 hover:underline cursor-pointer">{ws.name}</h5>
-              </Link>
-              <p className="font-normal text-gray-500 text-sm">
-                Criado em: {new Date(ws.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
+// Componente para o estado de carregamento
+const LoadingSkeleton = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+                <CardHeader>
+                    <Skeleton className="h-6 w-3/4" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-4 w-1/2" />
+                </CardContent>
+            </Card>
+        ))}
     </div>
-  );
+);
+
+// Componente para o estado vazio
+const EmptyState = () => (
+    <div className="text-center py-16 px-6 bg-muted/40 rounded-lg border-2 border-dashed">
+        <h3 className="text-xl font-semibold text-foreground">Nenhum workspace encontrado</h3>
+        <p className="text-sm text-muted-foreground mt-2 mb-4">
+            Crie seu primeiro workspace para começar a organizar seus projetos.
+        </p>
+        <Button asChild>
+            <Link href="/workspaces/new">Criar Workspace</Link>
+        </Button>
+    </div>
+);
+
+export default function WorkspacesPage() {
+    const { user, isLoading: isAuthLoading } = useAuth();
+    const router = useRouter();
+
+    const { 
+        data: workspaces, 
+        isLoading: isWorkspacesLoading, 
+        isError, 
+        error 
+    } = useQuery({
+        queryKey: ['workspaces', user?.id], 
+        queryFn: fetchWorkspaces,
+        enabled: !!user,
+    });
+
+    if (!isAuthLoading && !user) {
+        router.push('/login');
+        return <LoadingSkeleton />; // Mostra o skeleton enquanto redireciona
+    }
+
+    if (isAuthLoading || isWorkspacesLoading) {
+        return <LoadingSkeleton />;
+    }
+
+    if (isError) {
+        return (
+            <div className="flex justify-center items-center h-full bg-destructive/10 p-8 rounded-md">
+                <p className="text-lg text-destructive">Erro ao carregar workspaces: {error.message}</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-4 md:p-8">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold">Seus Workspaces</h1>
+                <Button asChild>
+                    <Link href="/workspaces/new">+ Novo Workspace</Link>
+                </Button>
+            </div>
+
+            {workspaces && workspaces.length === 0 ? (
+                <EmptyState />
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {workspaces?.map((ws) => (
+                        <Link href={`/workspaces/${ws.id}`} key={ws.id} className="block hover:no-underline">
+                            <Card className="h-full hover:border-primary/80 hover:shadow-md transition-all duration-200">
+                                <CardHeader>
+                                    <CardTitle className="truncate">{ws.name}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">
+                                        Criado em: {format(new Date(ws.created_at), "dd/MM/yyyy")}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </Link>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }

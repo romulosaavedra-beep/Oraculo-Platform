@@ -2,89 +2,112 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
+import apiClient from '@/services/apiClient';
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from '@/components/hooks/use-toast';
+
+
+// A função que faz a mutação (criação)
+const createWorkspace = async (workspaceName: string) => {
+  const { data } = await apiClient.post('/workspaces/', { name: workspaceName });
+  return data;
+};
+
 
 export default function CreateWorkspacePage() {
   const [workspaceName, setWorkspaceName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const router = useRouter();
-  const supabase = createClient();
-  const { user, isLoading : authLoading } = useAuth(); // Renamed loading to authLoading to avoid conflict
+  const { user, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
+
+  const mutation = useMutation({
+    mutationFn: createWorkspace,
+    onSuccess: (data) => {
+      toast({
+        title: "Sucesso!",
+        description: `Workspace "${data.name}" criado.`,
+      });
+      router.push('/workspaces');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao criar workspace",
+        description: error.message || "Ocorreu um problema.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleCreateWorkspace = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
 
-    if (authLoading) {
-      setError("Aguarde a autenticação ser carregada.");
-      setLoading(false);
+    if (!user && !authLoading) {
+      toast({
+        title: "Autenticação necessária",
+        description: "Você precisa estar logado para criar um workspace.",
+        variant: "destructive",
+      });
+      router.push('/login');
       return;
     }
-
-    if (!user) {
-      setError("Você precisa estar logado para criar um workspace.");
-      setLoading(false);
-      router.push('/login'); // Redirect to login if not authenticated
-      return;
+    
+    if (!workspaceName.trim()) {
+        toast({
+            title: "Nome inválido",
+            description: "O nome do workspace não pode estar vazio.",
+            variant: "destructive",
+        });
+        return;
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('workspaces')
-        .insert({ name: workspaceName })
-        .select(); // Select the inserted data to confirm
-
-      if (error) {
-        throw error;
-      }
-
-      console.log('Workspace criado:', data);
-      router.push('/workspaces'); // Redirect to workspaces list on success
-
-    } catch (err: any) {
-      setError(err.message);
-      console.error("Erro ao criar workspace:", err);
-    } finally {
-      setLoading(false);
-    }
+    mutation.mutate(workspaceName);
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-      <div className="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-100">
-          Criar Novo Workspace
-        </h1>
+    <div className="flex justify-center items-start p-4 md:p-8">
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle>Criar Novo Workspace</CardTitle>
+          <CardDescription>
+            Dê um nome ao seu novo workspace. Ele servirá como um contêiner para seus documentos e chats.
+          </CardDescription>
+        </CardHeader>
         <form onSubmit={handleCreateWorkspace}>
-          <div className="mb-4">
-            <label
-              htmlFor="workspaceName"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
-              Nome do Workspace
-            </label>
-            <input
-              type="text"
-              id="workspaceName"
-              value={workspaceName}
-              onChange={(e) => setWorkspaceName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            disabled={loading || authLoading}
-          >
-            {loading ? "Criando..." : "Criar Workspace"}
-          </button>
+          <CardContent>
+            <div className="grid w-full items-center gap-4">
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="workspaceName">Nome do Workspace</Label>
+                <Input
+                  id="workspaceName"
+                  placeholder="Ex: Análise de Contratos 2024"
+                  value={workspaceName}
+                  onChange={(e) => setWorkspaceName(e.target.value)}
+                  disabled={mutation.isPending || authLoading}
+                  required
+                />
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-end">
+            <Button type="submit" disabled={mutation.isPending || authLoading}>
+              {mutation.isPending ? "Criando..." : "Criar Workspace"}
+            </Button>
+          </CardFooter>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }
