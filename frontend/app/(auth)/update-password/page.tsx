@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useToast } from '@/components/hooks/use-toast';
@@ -18,51 +17,48 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from 'lucide-react';
 
-export default function RegisterPage() {
-  const [email, setEmail] = useState('');
+export default function UpdatePasswordPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
   const { toast } = useToast();
 
-  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+  // O Supabase Auth Helper lida com o token da URL automaticamente.
+  // Nós só precisamos chamar updateUser.
+
+  const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     if (password !== confirmPassword) {
-      toast({
-        title: "Erro de Validação",
-        description: "As senhas não coincidem.",
-        variant: "destructive",
-      });
+        toast({
+            title: "Erro de Validação",
+            description: "As senhas não coincidem.",
+            variant: "destructive",
+        });
       setLoading(false);
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        // Você pode redirecionar o usuário para uma página específica após a confirmação
-        emailRedirectTo: `${window.location.origin}/`,
-      },
-    });
+    const { error: updateError } = await supabase.auth.updateUser({ password });
 
     setLoading(false);
 
-    if (error) {
-      toast({
-        title: "Erro no Cadastro",
-        description: error.message,
-        variant: "destructive",
-      });
+    if (updateError) {
+        toast({
+            title: "Erro ao atualizar senha",
+            description: updateError.message,
+            variant: "destructive",
+        });
     } else {
-      toast({
-        title: "Cadastro quase concluído!",
-        description: "Enviamos um link de confirmação para o seu e-mail.",
-      });
+        toast({
+            title: "Sucesso!",
+            description: "Sua senha foi atualizada. Você já pode fazer login.",
+        });
       router.push('/login');
     }
   };
@@ -70,28 +66,16 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
-        <form onSubmit={handleSignUp}>
+        <form onSubmit={handleUpdatePassword}>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Criar uma Conta</CardTitle>
+            <CardTitle className="text-2xl">Crie uma Nova Senha</CardTitle>
             <CardDescription>
-              Insira seus dados para se registrar na plataforma Oráculo.
+              Insira sua nova senha abaixo.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password">Nova Senha</Label>
               <Input
                 id="password"
                 type="password"
@@ -102,7 +86,7 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirmar Senha</Label>
+              <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
               <Input
                 id="confirm-password"
                 type="password"
@@ -113,17 +97,11 @@ export default function RegisterPage() {
               />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col gap-4">
+          <CardFooter>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "Registrando..." : "Registrar"}
+              {loading ? "Atualizando..." : "Atualizar Senha"}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Já tem uma conta?{" "}
-              <Link href="/login" className="underline hover:text-primary">
-                Fazer Login
-              </Link>
-            </p>
           </CardFooter>
         </form>
       </Card>

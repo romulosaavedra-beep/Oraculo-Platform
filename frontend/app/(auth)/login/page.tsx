@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -99,6 +100,19 @@ export default function LoginPage() {
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
+        <div className="mt-6 text-center text-sm">
+          <p className="text-gray-600 dark:text-gray-400">
+            Não tem uma conta?{" "}
+            <Link href="/register" className="font-medium text-blue-600 hover:underline dark:text-blue-500">
+              Registre-se
+            </Link>
+          </p>
+          <p className="mt-2">
+            <Link href="/forgot-password" passHref className="text-xs text-gray-500 hover:underline">
+              Esqueceu sua senha?
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

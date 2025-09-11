@@ -1,122 +1,162 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/hooks/use-toast';
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from 'lucide-react';
 
 interface FileUploaderProps {
   workspaceId: string;
 }
 
-export default function FileUploader({ workspaceId }: FileUploaderProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+import apiClient from '@/services/apiClient';
 
-  const { user } = useAuth();
-  const supabase = createClient();
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      setSelectedFile(event.target.files[0]);
-      setMessage(null); // Clear previous messages
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      setMessage("Por favor, selecione um arquivo primeiro.");
-      return;
+// A função de mutação que encapsula toda a lógica de upload
+const uploadFile = async ({ selectedFile, user, workspaceId, supabase }: any) => {
+    if (!selectedFile || !user || !workspaceId) {
+        throw new Error("Informações insuficientes para o upload.");
     }
 
-    if (!user) {
-      setMessage("Você precisa estar logado para fazer o upload.");
-      return;
-    }
-
-    setUploading(true);
-    setMessage(`Fazendo upload de: ${selectedFile.name}...`);
-
-    // Sanitize the file name
     const sanitizedFileName = selectedFile.name
       .replace(/\s+/g, '_')
       .replace(/[^a-zA-Z0-9._-]/g, '');
 
     const filePath = `${user.id}/${workspaceId}/${sanitizedFileName}`;
 
-    try {
-      // --- ETAPA 1: UPLOAD DO ARQUIVO ---
-      console.log("ETAPA 1: Tentando fazer o upload do arquivo para o Storage...");
-      const { error: uploadError } = await supabase.storage
+    // 1. Upload para o Storage
+    const { error: uploadError } = await supabase.storage
         .from('workspaces_data')
-        .upload(filePath, selectedFile, {
-          cacheControl: '3600',
-          upsert: true,
+        .upload(filePath, selectedFile, { upsert: true });
+
+    if (uploadError) {
+        throw new Error(`Falha no upload do arquivo: ${uploadError.message}`);
+    }
+
+    // 2. Inserção no Banco de Dados e retorno do ID
+    const { data: insertData, error: insertError } = await supabase
+        .from('documents')
+        .insert({
+            name: sanitizedFileName,
+            path: filePath,
+            user_id: user.id,
+            workspace_id: workspaceId,
+        })
+        .select('id')
+        .single();
+
+    if (insertError) {
+        // Tenta reverter o upload do storage em caso de falha no DB
+        await supabase.storage.from('workspaces_data').remove([filePath]);
+        throw new Error(`Falha ao registrar o documento: ${insertError.message}`);
+    }
+
+    if (!insertData) {
+        throw new Error("Não foi possível obter o ID do documento após a inserção.");
+    }
+
+    return { success: true, fileName: selectedFile.name, documentId: insertData.id };
+};
+
+// Função de mutação para chamar o endpoint de processamento
+const processDocument = async (documentId: number) => {
+    const { data } = await apiClient.post(`/api/v1/workspaces/process-document/${documentId}`);
+    return data;
+};
+
+
+export default function FileUploader({ workspaceId }: FileUploaderProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref para o input
+  const { user } = useAuth();
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Mutação para iniciar o processamento no backend
+  const processFileMutation = useMutation({
+    mutationFn: processDocument,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaceFiles', workspaceId] });
+    },
+    onError: (error: any) => {
+      toast({
+          title: "Erro ao Iniciar Processamento",
+          description: error.response?.data?.detail || error.message,
+          variant: "destructive"
+      });
+    }
+  });
+
+  // Mutação principal para o upload do arquivo
+  const uploadMutation = useMutation({ 
+      mutationFn: (file: File) => uploadFile({ selectedFile: file, user, workspaceId, supabase }),
+      onSuccess: (data) => {
+          toast({
+              title: "Sucesso!",
+              description: `Arquivo "${data.fileName}" enviado. Iniciando processamento.`
+          });
+          // Invalida a query para mostrar o status "PENDING" imediatamente
+          queryClient.invalidateQueries({ queryKey: ['workspaceFiles', workspaceId] });
+
+          // Chama a segunda mutação para iniciar o processamento
+          processFileMutation.mutate(data.documentId);
+
+          // Limpa o input e o estado após o sucesso
+          if(fileInputRef.current) {
+              fileInputRef.current.value = '';
+          }
+          setSelectedFile(null);
+      },
+      onError: (error: Error) => {
+        toast({
+            title: "Erro no Upload",
+            description: error.message,
+            variant: "destructive"
         });
-
-      if (uploadError) {
-        console.error("FALHA NA ETAPA 1 (UPLOAD):", uploadError);
-        throw uploadError;
       }
-      console.log("ETAPA 1 CONCLUÍDA: Upload para o Storage bem-sucedido.");
+  });
 
-
-      // --- ETAPA 2: INSERÇÃO NO BANCO DE DADOS ---
-      console.log("ETAPA 2: Tentando inserir o registro na tabela 'documents'...");
-      try {
-        const { data: insertData, error: insertError } = await supabase.from('documents').insert({
-          name: sanitizedFileName,
-          path: filePath,
-          user_id: user.id,
-          workspace_id: workspaceId,
-        });
-
-        if (insertError) {
-          console.error("FALHA NA ETAPA 2 (INSERÇÃO NO DB):", insertError);
-          // Tenta remover o arquivo órfão
-          await supabase.storage.from('workspaces_data').remove([filePath]);
-          throw insertError;
-        }
-
-        console.log("ETAPA 2 CONCLUÍDA: Inserção no DB bem-sucedida.", insertData);
-        setMessage(`Arquivo "${selectedFile.name}" enviado e registrado com sucesso!`);
-
-      } catch (dbError: any) {
-        console.error("Erro ao registrar o documento:", dbError);
-        setMessage(`Erro ao registrar o documento no banco de dados: ${dbError.message}`);
-      }
-
-    } catch (err: any) {
-      console.error("Erro no processo de upload:", err);
-      setMessage(`Erro ao enviar o arquivo: ${err.message}`);
-    } finally {
-      setUploading(false);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setSelectedFile(event.target.files[0]);
     }
   };
 
+  const handleUpload = () => {
+    if (selectedFile) {
+      uploadMutation.mutate(selectedFile);
+    }
+  };
+
+  const isLoading = uploadMutation.isPending || processFileMutation.isPending;
+
   return (
-    <div className="p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
-      <h3 className="text-lg font-semibold mb-3 text-gray-800">Adicionar Documentos</h3>
-      <div className="flex flex-col gap-4">
-        <input
-          type="file"
-          onChange={handleFileChange}
-          disabled={uploading}
-          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+    <div className="p-4 border rounded-lg bg-background shadow-sm">
+      <h3 className="text-lg font-semibold mb-3">Adicionar Documentos</h3>
+      <div className="grid w-full max-w-sm items-center gap-2">
+        <Label htmlFor="document">Selecione um arquivo</Label>
+        <Input 
+            id="document"
+            type="file" 
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            disabled={isLoading}
         />
-        <button
+        <Button
           onClick={handleUpload}
-          disabled={!selectedFile || uploading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          disabled={!selectedFile || isLoading}
         >
-          {uploading ? 'Enviando...' : 'Fazer Upload'}
-        </button>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} 
+          {uploadMutation.isPending ? 'Enviando...' : (processFileMutation.isPending ? 'Processando...' : 'Fazer Upload')}
+        </Button>
       </div>
-      {message && (
-        <p className={`mt-3 text-sm ${message.includes('Erro') ? 'text-red-600' : 'text-green-600'}`}>
-          {message}
-        </p>
-      )}
     </div>
   );
 }

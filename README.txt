@@ -23,5 +23,9 @@ Gemini, o servidor do frontend não está iniciando. Eu executei `npm run dev` e
 ---
 
 git add .
-git commit -m "Feat: Refatora páginas de workspace com Shadcn/UI"
+git commit -m "Feat: Corrige o fluxo de disparo do processamento de documentos"
 git push --force origin main
+
+---
+
+Gemini, Leia o arquivo prompt.txt na raiz do projeto, lá tem as instruções para você executar 

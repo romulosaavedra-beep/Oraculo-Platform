@@ -1,9 +1,12 @@
-Gemini, você introduziu um erro de sintaxe no arquivo `frontend/app/(dashboard)/workspaces/[workspaceId]/page.tsx`. Por favor, reescreva este arquivo do zero para corrigir o problema. O novo arquivo deve conter a seguinte lógica:
-1.  Ser um componente de cliente que recebe `params` com o `workspaceId`.
-2.  Manter os estados para `files`, `loading`, e `error`.
-3.  Usar um `useEffect` para buscar a lista inicial de arquivos da tabela `documents` e para se inscrever no canal do Supabase Realtime para o `workspaceId` específico.
-4.  O listener do Realtime deve ouvir todos os eventos (`*`) e chamar a função de busca de arquivos novamente sempre que um evento for detectado. Adicione `console.log` para depurar o status da inscrição e os payloads recebidos.
-5.  O JSX deve usar um `ResizablePanelGroup` com dois painéis.
-6.  O painel esquerdo deve conter os componentes `<FileUploader workspaceId={workspaceId} />` e `<FileList files={files} loading={loading} setFiles={setFiles} />`.
-7.  O painel direito deve conter o componente `<ChatInterface workspaceId={workspaceId} />`.
-O objetivo é ter um arquivo sintaticamente correto que centralize o estado e a lógica de dados.
+Gemini, sua sugestão de usar Webhooks está incorreta e não segue a nossa arquitetura atual descrita no `ANALISE_V4.md`. Por favor, descarte essa abordagem.
+
+O problema real é que, quando o frontend faz o upload de um arquivo, o status do documento fica travado em "PENDING". A nossa arquitetura correta é: o frontend chama a API no endpoint `POST /api/v1/workspaces/process-document/{document_id}` para iniciar o processamento.
+
+Por favor, depure este fluxo:
+1.  **Analise o `frontend/components/workspace/FileUploader.tsx`:** Verifique se a chamada `apiClient.post` para o endpoint `/api/v1/workspaces/process-document/{document_id}` está sendo feita corretamente após a inserção do documento no banco de dados.
+2.  **Analise o `backend/app/api/v1/endpoints/workspace.py`:** Verifique se a rota `POST /process-document/{document_id}` existe, está protegida corretamente com `Depends(get_current_user)`, e se ela está despachando a tarefa `app.tasks.process_document` para o Celery.
+3.  **Analise o `backend/app/tasks.py`:** Verifique a tarefa `process_document` em busca de qualquer erro lógico que possa impedi-la de ser concluída.
+
+Encontre a falha neste fluxo existente e corrija o código.```
+
+Este prompt força o Gemini a abandonar a ideia errada e a focar em depurar a arquitetura que nós definimos como a correta. Ele o guiará para encontrar a verdadeira causa do porquê os documentos estão travados em "PENDING".

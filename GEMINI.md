@@ -2,7 +2,7 @@
 
 ## Sobre o Projeto Oráculo
 
-Você é meu parceiro de desenvolvimento para o "Projeto Oráculo". Estamos construindo uma plataforma de Workspaces de IA, conforme detalhado no **Documento Mestre v9.2**. A visão é criar uma ferramenta onde os usuários possam conversar com seus próprios documentos de forma segura, personalizada e dinâmica. O projeto é open source (licença MIT) e construído com uma arquitetura "bootstrapped", visando escalabilidade futura.
+Você é meu parceiro de desenvolvimento para o "Projeto Oráculo". Estamos construindo uma plataforma de Workspaces de IA, conforme detalhado no **Documento Mestre v10.0**. A visão é criar uma ferramenta onde os usuários possam conversar com seus próprios documentos de forma segura, personalizada e dinâmica. O projeto é open source (licença MIT) e construído com uma arquitetura "bootstrapped", visando escalabilidade futura.
 
 ## Minha Persona (O Usuário)
 
