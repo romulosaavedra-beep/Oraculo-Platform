@@ -1,12 +1,21 @@
-Gemini, sua sugestão de usar Webhooks está incorreta e não segue a nossa arquitetura atual descrita no `ANALISE_V4.md`. Por favor, descarte essa abordagem.
+Gemini, estamos enfrentando erros persistentes, como 404 e problemas de importação, mesmo após várias correções. Precisamos de uma auditoria completa e detalhada de todo o projeto `oraculo-plataforma` para encontrar a causa raiz das inconsistências.
 
-O problema real é que, quando o frontend faz o upload de um arquivo, o status do documento fica travado em "PENDING". A nossa arquitetura correta é: o frontend chama a API no endpoint `POST /api/v1/workspaces/process-document/{document_id}` para iniciar o processamento.
+Por favor, analise o projeto inteiro (backend e frontend) e gere um novo relatório de diagnóstico no arquivo `ANALISE_FINAL.md`.
 
-Por favor, depure este fluxo:
-1.  **Analise o `frontend/components/workspace/FileUploader.tsx`:** Verifique se a chamada `apiClient.post` para o endpoint `/api/v1/workspaces/process-document/{document_id}` está sendo feita corretamente após a inserção do documento no banco de dados.
-2.  **Analise o `backend/app/api/v1/endpoints/workspace.py`:** Verifique se a rota `POST /process-document/{document_id}` existe, está protegida corretamente com `Depends(get_current_user)`, e se ela está despachando a tarefa `app.tasks.process_document` para o Celery.
-3.  **Analise o `backend/app/tasks.py`:** Verifique a tarefa `process_document` em busca de qualquer erro lógico que possa impedi-la de ser concluída.
+Sua análise deve focar em:
 
-Encontre a falha neste fluxo existente e corrija o código.```
+1.  **Consistência da Arquitetura:** Verifique se a estrutura de arquivos e a lógica de importação estão consistentes. O `main.py` está importando o `api.py` corretamente? O `api.py` está importando e incluindo TODOS os roteadores dos endpoints (`auth`, `workspace`, `chat`, `project_analysis`)?
 
-Este prompt força o Gemini a abandonar a ideia errada e a focar em depurar a arquitetura que nós definimos como a correta. Ele o guiará para encontrar a verdadeira causa do porquê os documentos estão travados em "PENDING".
+2.  **Conteúdo dos Arquivos Essenciais:** Verifique se os arquivos de "esqueleto" que podem ter sido revertidos estão realmente preenchidos. Especificamente, verifique o conteúdo de:
+    *   `backend/app/core/config.py` (Classe Settings)
+    *   `backend/app/core/security.py` (Função get_current_user)
+    *   Todos os arquivos em `backend/app/schemas/`
+    *   Todos os arquivos em `backend/app/api/v1/endpoints/` (verifique se todos exportam um `router`)
+    *   `frontend/lib/supabase.ts` (Verifique a exportação de `createClient`)
+    *   `frontend/context/AuthContext.tsx` (Verifique o uso de `createClient`)
+
+3.  **Inconsistências de Nomenclatura:** Procure por inconsistências entre os nomes de variáveis nos arquivos `.env` e como eles são chamados no código (ex: `SUPABASE_SERVICE_KEY` vs `SUPABASE_ANON_KEY`).
+
+4.  **Dependências Faltando:** Compare os `package.json` e `pyproject.toml` com as importações nos arquivos de código para encontrar quaisquer dependências que possam estar faltando.
+
+O objetivo é produzir um relatório final que identifique **TODAS** as inconsistências restantes para que possamos corrigi-las de uma vez por todas e alcançar um estado estável.

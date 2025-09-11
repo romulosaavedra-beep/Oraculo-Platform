@@ -3,7 +3,7 @@ from typing import List
 from app.schemas.workspace_schemas import WorkspaceCreate, WorkspaceRead
 from app.schemas.document_schemas import DocumentRead
 from app.crud import workspace_crud
-from app.tasks import process_document # Importa a tarefa Celery
+from app.celery_instance import celery_app # Importa a instância do Celery
 from supabase import Client
 # Mock de dependência de autenticação - será substituído em breve
 from app.core.security import get_current_user
@@ -88,7 +88,13 @@ def process_document_endpoint(
     if doc_res.data['user_id'] != current_user:
         raise HTTPException(status_code=403, detail="Acesso negado. O documento não pertence ao usuário.")
 
-    # Dispara a tarefa Celery
-    process_document.delay(document_id)
+    print(f"DEBUG: Despachando tarefa para o broker: {celery_app.conf.broker_url}")
+    try:
+        # Dispara a tarefa Celery explicitamente pelo nome
+        celery_app.send_task('app.tasks.process_document', args=[document_id])
+        print("DEBUG: Tarefa despachada com sucesso para o Redis.")
+    except Exception as e:
+        print(f"ERRO AO DESPACHAR TAREFA: {e}")
+        raise HTTPException(status_code=500, detail="Falha ao enfileirar a tarefa de processamento.")
 
     return {"message": "O processamento do documento foi iniciado."}

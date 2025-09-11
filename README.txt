@@ -23,9 +23,9 @@ Gemini, o servidor do frontend não está iniciando. Eu executei `npm run dev` e
 ---
 
 git add .
-git commit -m "Feat: Corrige o fluxo de disparo do processamento de documentos"
+git commit -m "Milestone: MVP funcional com UI básica e pipeline de IA completo"
 git push --force origin main
 
 ---
 
-Gemini, Leia o arquivo prompt.txt na raiz do projeto, lá tem as instruções para você executar 
+Gemini, por favor leia o arquivo prompt.txt na raiz do projeto, lá tem as instruções para você executar 
