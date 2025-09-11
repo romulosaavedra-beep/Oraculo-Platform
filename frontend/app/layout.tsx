@@ -6,6 +6,8 @@ import { QueryProvider } from "@/components/QueryProvider"; // Importado
 export const metadata: Metadata = {
   title: "Projeto Oráculo",
   description: "Sua plataforma de Workspaces de IA",
+  icons: [{ rel: 'icon', url: '/favicon.ico' }],
+
 };
 
 export default function RootLayout({

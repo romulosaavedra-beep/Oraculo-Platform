@@ -46,7 +46,7 @@ const fetchChatHistory = async (workspaceId: string): Promise<ChatMessage[]> => 
 };
 
 const postChatMessage = async ({ workspaceId, message }: { workspaceId: string; message: string }): Promise<ChatMessage> => {
-  const { data } = await apiClient.post(`/chat/${workspaceId}`, { message });
+  const { data } = await apiClient.post(`/api/v1/chat/${workspaceId}`, { message });
   return data;
 };
 

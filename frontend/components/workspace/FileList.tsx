@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase';
 import { useToast } from '@/components/hooks/use-toast';
 import { Trash2, FileText, Loader2 } from 'lucide-react';
 
@@ -46,7 +45,7 @@ const fetchFiles = async (workspaceId: string): Promise<Document[]> => {
 };
 
 const deleteFile = async (documentId: string) => {
-    const { data } = await apiClient.delete(`/documents/${documentId}`);
+    const { data } = await apiClient.delete(`/workspaces/documents/${documentId}`);
     return data;
 };
 

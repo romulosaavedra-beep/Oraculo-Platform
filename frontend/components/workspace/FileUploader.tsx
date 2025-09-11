@@ -66,8 +66,10 @@ const uploadFile = async ({ selectedFile, user, workspaceId, supabase }: any) =>
 
 // Função de mutação para chamar o endpoint de processamento
 const processDocument = async (documentId: number) => {
+    const processDocument = async (documentId: number) => {
     const { data } = await apiClient.post(`/api/v1/workspaces/process-document/${documentId}`);
     return data;
+};
 };
 
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation'; // Importa usePathname
 import { useAuth } from '@/context/AuthContext';
 import apiClient from '@/services/apiClient';
 import { useQuery } from '@tanstack/react-query';
@@ -26,7 +26,8 @@ interface Workspace {
 
 // A função de busca de dados, agora usando nosso cliente de API.
 const fetchWorkspaces = async (): Promise<Workspace[]> => {
-    const { data } = await apiClient.get('/workspaces/');
+    // DEBUG: Usando o caminho completo para isolar o problema.
+    const { data } = await apiClient.get('/api/v1/workspaces/');
     return data;
 };
 
@@ -62,6 +63,7 @@ const EmptyState = () => (
 export default function WorkspacesPage() {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
+    const pathname = usePathname(); // Obtém o caminho atual da URL
 
     const { 
         data: workspaces, 
@@ -71,7 +73,8 @@ export default function WorkspacesPage() {
     } = useQuery({
         queryKey: ['workspaces', user?.id], 
         queryFn: fetchWorkspaces,
-        enabled: !!user,
+        // A query só será executada se o usuário estiver logado E na página exata de workspaces
+        enabled: !!user && pathname === '/workspaces',
     });
 
     if (!isAuthLoading && !user) {
