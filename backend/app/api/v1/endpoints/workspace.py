@@ -98,3 +98,32 @@ def process_document_endpoint(
         raise HTTPException(status_code=500, detail="Falha ao enfileirar a tarefa de processamento.")
 
     return {"message": "O processamento do documento foi iniciado."}
+
+
+@router.delete("/documents/{document_id}", status_code=200)
+def delete_document_endpoint(
+    *,
+    document_id: int,
+    db: Client = Depends(get_supabase_client),
+    current_user: str = Depends(get_current_user)
+):
+    """
+    Deleta um documento específico.
+    O gatilho no Supabase cuidará de deletar o arquivo do Storage e os chunks.
+    """
+    # 1. Verificar se o documento existe e pertence ao usuário
+    doc_res = db.table('documents').select('id', 'user_id').eq('id', document_id).single().execute()
+    
+    if not doc_res.data:
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
+
+    if doc_res.data['user_id'] != current_user:
+        raise HTTPException(status_code=403, detail="Acesso negado. O documento não pertence ao usuário.")
+
+    # 2. Deletar o registro do documento
+    try:
+        db.table('documents').delete().eq('id', document_id).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar o documento: {e}")
+
+    return {"message": "Documento deletado com sucesso."}

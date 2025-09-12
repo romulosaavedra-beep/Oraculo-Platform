@@ -66,12 +66,9 @@ const uploadFile = async ({ selectedFile, user, workspaceId, supabase }: any) =>
 
 // Função de mutação para chamar o endpoint de processamento
 const processDocument = async (documentId: number) => {
-    const processDocument = async (documentId: number) => {
-    const { data } = await apiClient.post(`/api/v1/workspaces/process-document/${documentId}`);
+    const { data } = await apiClient.post(`/workspaces/process-document/${documentId}`);
     return data;
 };
-};
-
 
 export default function FileUploader({ workspaceId }: FileUploaderProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

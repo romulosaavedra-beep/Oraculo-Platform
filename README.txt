@@ -23,7 +23,7 @@ Gemini, o servidor do frontend não está iniciando. Eu executei `npm run dev` e
 ---
 
 git add .
-git commit -m "Milestone: MVP funcional com UI básica e pipeline de IA completo"
+git commit -m "Milestone: MVP 100% funcional com pipeline de IA e CRUD completo"
 git push --force origin main
 
 ---

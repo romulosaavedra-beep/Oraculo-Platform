@@ -1,21 +1,6 @@
-Gemini, estamos enfrentando erros persistentes, como 404 e problemas de importação, mesmo após várias correções. Precisamos de uma auditoria completa e detalhada de todo o projeto `oraculo-plataforma` para encontrar a causa raiz das inconsistências.
-
-Por favor, analise o projeto inteiro (backend e frontend) e gere um novo relatório de diagnóstico no arquivo `ANALISE_FINAL.md`.
-
-Sua análise deve focar em:
-
-1.  **Consistência da Arquitetura:** Verifique se a estrutura de arquivos e a lógica de importação estão consistentes. O `main.py` está importando o `api.py` corretamente? O `api.py` está importando e incluindo TODOS os roteadores dos endpoints (`auth`, `workspace`, `chat`, `project_analysis`)?
-
-2.  **Conteúdo dos Arquivos Essenciais:** Verifique se os arquivos de "esqueleto" que podem ter sido revertidos estão realmente preenchidos. Especificamente, verifique o conteúdo de:
-    *   `backend/app/core/config.py` (Classe Settings)
-    *   `backend/app/core/security.py` (Função get_current_user)
-    *   Todos os arquivos em `backend/app/schemas/`
-    *   Todos os arquivos em `backend/app/api/v1/endpoints/` (verifique se todos exportam um `router`)
-    *   `frontend/lib/supabase.ts` (Verifique a exportação de `createClient`)
-    *   `frontend/context/AuthContext.tsx` (Verifique o uso de `createClient`)
-
-3.  **Inconsistências de Nomenclatura:** Procure por inconsistências entre os nomes de variáveis nos arquivos `.env` e como eles são chamados no código (ex: `SUPABASE_SERVICE_KEY` vs `SUPABASE_ANON_KEY`).
-
-4.  **Dependências Faltando:** Compare os `package.json` e `pyproject.toml` com as importações nos arquivos de código para encontrar quaisquer dependências que possam estar faltando.
-
-O objetivo é produzir um relatório final que identifique **TODAS** as inconsistências restantes para que possamos corrigi-las de uma vez por todas e alcançar um estado estável.
+Gemini, precisamos criar o endpoint para deletar documentos. Modifique o arquivo `backend/app/api/v1/endpoints/workspace.py`. Adicione uma nova rota `DELETE` no caminho `/documents/{document_id}`. Esta rota deve ser protegida com `Depends(get_current_user)`. Dentro da função, ela deve:
+1.  Receber o `document_id` da URL.
+2.  Verificar se o documento pertence ao usuário logado.
+3.  Se pertencer, usar o cliente Supabase para deletar o registro da tabela `documents`.
+4.  Retornar uma mensagem de sucesso.
+Lembre-se que o nosso gatilho no Supabase cuidará de deletar o arquivo do Storage e os chunks associados.

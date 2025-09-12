@@ -1,3 +1,4 @@
+// frontend/services/apiClient.ts
 import axios from 'axios';
 import { createClient } from '@/lib/supabase';
 
@@ -13,9 +14,9 @@ apiClient.interceptors.request.use(
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session?.access_token) {
+      // Garante que o cabeçalho de autorização seja definido corretamente
       config.headers.Authorization = `Bearer ${session.access_token}`;
     }
-
     return config;
   },
   (error) => {
